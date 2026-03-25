@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SYSFS="/sys/class/power_supply/BATT/charge_control_end_threshold"
+CONF="/etc/battery-charge-threshold.conf"
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+need_root() { [ "$(id -u)" -eq 0 ] || die "Uruchom jako root (sudo)."; }
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  battery <0-100> [--temp|--persist]
+  battery status
+  battery apply
+USAGE
+}
+
+[ -e "$SYSFS" ] || die "Brak: $SYSFS (brak wsparcia sterownika/EC?)."
+
+cmd="${1:-}"
+case "$cmd" in
+  ""|-h|--help) usage; exit 0 ;;
+  status)
+    echo -n "Stan ładowania: "; cat /sys/class/power_supply/BATT/status 2>/dev/null || echo "unknown"
+    echo -n "Aktualny poziom:  "; cat /sys/class/power_supply/BATT/capacity 2>/dev/null || echo "unknown"; echo -n "%"
+    echo ""
+    echo -n "Limit ładowania:   "; cat "$SYSFS"
+    if [ -e "$CONF" ]; then echo -n "Stały poziom:      "; cat "$CONF"; else echo "Persisted:      (none)"; fi
+    exit 0
+    ;;
+  apply)
+    need_root
+    [ -e "$CONF" ] || die "Brak pliku: $CONF"
+    v="$(tr -cd '0-9' < "$CONF")"
+    [ -n "$v" ] || die "Zła wartość w $CONF"
+    [ "$v" -ge 0 ] && [ "$v" -le 100 ] || die "Zakres 0/20/40/60/80/100"
+    echo "$v" > "$SYSFS"
+    exit 0
+    ;;
+esac
+
+v="$cmd"
+shift || true
+
+[[ "$v" =~ ^[0-9]+$ ]] || die "Podaj liczbę 0/20/40/60/80/100."
+[ "$v" -ge 0 ] && [ "$v" -le 100 ] || die "Zakres 0/20/40/60/80/100."
+
+mode=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --temp|-t) mode="temp" ;;
+    --persist|-p) mode="persist" ;;
+    *) die "Nieznana opcja: $1" ;;
+  esac
+  shift
+done
+
+if [ -z "$mode" ]; then
+  read -r -p "Ustawić na stałe (po restarcie)? [y/N] " ans || true
+  case "${ans:-N}" in
+    y|Y|yes|YES|tak|TAK) mode="persist" ;;
+    *) mode="temp" ;;
+  esac
+fi
+
+need_root
+echo "$v" > "$SYSFS"
+
+if [ "$mode" = "persist" ]; then
+  echo "$v" > "$CONF"
+  systemctl restart battery-threshold.service >/dev/null 2>&1 || true
+fi
