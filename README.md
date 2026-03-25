@@ -1,31 +1,44 @@
-# Installation Instructions for Debian-based Systems
+# Installation and Usage Instructions for Debian-based Systems
 
-## Prerequisites
-Ensure that you have the following packages installed:
-- `git`
-- `make`
-- `gcc`
+## Automated Installation
 
-## Installation Steps
-1. Clone the repository:
+To install the software using the package manager, simply run the following command in your terminal:
+
+```bash
+sudo apt update && sudo apt install battery
+```
+
+This will fetch the software along with all required dependencies and automatically install them.
+
+## Manual Installation
+
+If you prefer to install the software manually, follow these steps:
+
+1. **Download the Latest Release**:
+   You can find the latest release on the [Releases page](https://github.com/ciasther/battery/releases). Download the appropriate `.deb` file for your architecture.
+
+2. **Install Dependencies**:
+   Before proceeding with the installation, ensure that you have all dependencies installed. You can find the list of dependencies in the documentation or by inspecting the package.
+   
+3. **Install the Package**:
+   Use the following command to install the downloaded package:
+   
    ```bash
-   git clone https://github.com/ciasther/battery.git
+   sudo dpkg -i /path/to/downloaded/package.deb
    ```
-2. Navigate to the project directory:
+   
+   If you encounter dependency issues, resolve them by running:
+   
    ```bash
-   cd battery
-   ```
-3. Build the project:
-   ```bash
-   make
-   ```
-4. Install the application:
-   ```bash
-   sudo make install
+   sudo apt install -f
    ```
 
 ## Usage
-After the installation, you can run the application using the following command:
+
+Once installed, you can start using the software by running:
+
 ```bash
 battery
 ```
+
+For further details on usage options and configuration, refer to the documentation available in the repository.
